@@ -97,15 +97,14 @@ class DataExplorer {
             await this.createTableFromData(data, file.name);
 
             this.showStatus(`✅ Successfully loaded ${data.length.toLocaleString()} rows with ${this.currentData.schema.length} columns`, 'success');
-            this.showColumnInfo();
             this.chatSection.style.display = 'block';
             this.chatInput.focus();
             
-            // Hide status after a moment
-            setTimeout(() => this.hideStatus(), 5000);
-
-            // Initialize AI model in background
-            this.initializeAI();
+            // Show column info after chat section is visible
+            setTimeout(() => {
+                this.showColumnInfo();
+                this.hideStatus();
+            }, 500);
 
         } catch (error) {
             this.showStatus(`Upload failed: ${error.message}`, 'error');
@@ -210,7 +209,7 @@ class DataExplorer {
             const results = this.executeQuery(sqlQuery);
 
             let responseMsg = `Found ${results.length.toLocaleString()} results`;
-            
+
             if (question.toLowerCase().includes('chart') || question.toLowerCase().includes('bar')) {
                 responseMsg = `Created visualization with ${results.length.toLocaleString()} data points`;
             }
@@ -796,14 +795,19 @@ class DataExplorer {
     }
 
     showColumnInfo() {
+        if (!this.currentData || !this.currentData.schema) {
+            console.error('No data schema available');
+            return;
+        }
+        
         const columns = this.currentData.schema;
-        const cleanColumns = columns.map(col => 
+        const cleanColumns = columns.map(col =>
             col.replace('Aggregated: ', '').replace('Installed Software: ', '')
         );
-        
+
         const columnMessage = `📋 Available columns in your data: ${cleanColumns.map(col => `"${col}"`).join(', ')}`;
         this.addMessage(columnMessage, 'ai');
-        
+
         // Add some helpful examples based on the columns
         const examples = this.generateColumnExamples(cleanColumns);
         if (examples.length > 0) {
@@ -814,28 +818,28 @@ class DataExplorer {
 
     generateColumnExamples(columns) {
         const examples = [];
-        
+
         // Look for common column patterns and suggest relevant queries
-        const nameColumns = columns.filter(col => 
-            col.toLowerCase().includes('name') || 
+        const nameColumns = columns.filter(col =>
+            col.toLowerCase().includes('name') ||
             col.toLowerCase().includes('title') ||
             col.toLowerCase().includes('software')
         );
-        
-        const categoryColumns = columns.filter(col => 
-            col.toLowerCase().includes('category') || 
+
+        const categoryColumns = columns.filter(col =>
+            col.toLowerCase().includes('category') ||
             col.toLowerCase().includes('type') ||
             col.toLowerCase().includes('status')
         );
-        
+
         if (nameColumns.length > 0) {
             examples.push(`"Show me a bar chart by ${nameColumns[0]}"`);
         }
-        
+
         if (categoryColumns.length > 0) {
             examples.push(`"Count items by ${categoryColumns[0]}"`);
         }
-        
+
         // Add some generic examples
         if (columns.length > 0) {
             examples.push(`"Show me the top 10 rows"`);
@@ -843,7 +847,7 @@ class DataExplorer {
                 examples.push(`"What are the unique values in ${columns[0]}?"`);
             }
         }
-        
+
         return examples.slice(0, 3); // Limit to 3 examples
     }
 }
