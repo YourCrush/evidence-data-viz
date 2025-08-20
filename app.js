@@ -621,24 +621,33 @@ class DataExplorer {
         }
 
         // Add data table
+        const displayLimit = results.length > 1000 ? 50 : 100;
         html += `
             <div style="margin-top: 20px;">
-                <h4>📋 Data Table (${results.length} rows)</h4>
+                <h4>📋 Data Table</h4>
+                <p style="color: #666; margin-bottom: 10px;">
+                    Showing top ${Math.min(displayLimit, results.length)} of ${results.length.toLocaleString()} results
+                </p>
                 <table class="results-table">
                     <thead>
                         <tr>
-                            ${columns.map(col => `<th>${col}</th>`).join('')}
+                            ${columns.map(col => `<th>${col.replace('Aggregated: ', '').replace('Installed Software: ', '')}</th>`).join('')}
                         </tr>
                     </thead>
                     <tbody>
-                        ${results.slice(0, 100).map(row => `
+                        ${results.slice(0, displayLimit).map((row, index) => `
                             <tr>
-                                ${columns.map(col => `<td>${this.formatCellValue(row[col])}</td>`).join('')}
+                                <td style="background: #f8f9fa; font-weight: bold;">#${index + 1}</td>
+                                ${columns.slice(1).map(col => `<td>${this.formatCellValue(row[col])}</td>`).join('')}
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
-                ${results.length > 100 ? `<p style="text-align: center; color: #666; margin-top: 10px;">Showing first 100 of ${results.length} rows</p>` : ''}
+                ${results.length > displayLimit ? `
+                    <p style="text-align: center; color: #666; margin-top: 10px;">
+                        <em>Showing top ${displayLimit} results. Total: ${results.length.toLocaleString()} unique software titles.</em>
+                    </p>
+                ` : ''}
             </div>
         `;
 
@@ -658,28 +667,32 @@ class DataExplorer {
         const insights = [];
         const q = query.toLowerCase();
         
-        if (q.includes('count') && results.length > 0) {
-            const total = results.reduce((sum, row) => sum + (parseInt(Object.values(row)[1]) || 0), 0);
-            insights.push(`Total count across all groups: ${total.toLocaleString()}`);
+        if (results.length > 0 && results[0].count !== undefined) {
+            // This is a grouped count query
+            const total = results.reduce((sum, row) => sum + (parseInt(row.count) || 0), 0);
+            insights.push(`Found ${results.length.toLocaleString()} unique software titles`);
+            insights.push(`Total installations across all software: ${total.toLocaleString()}`);
+            
+            // Find the most popular software
+            if (results.length > 0) {
+                const topSoftware = results[0];
+                const softwareName = Object.values(topSoftware)[0];
+                const count = topSoftware.count;
+                insights.push(`Most installed software: "${softwareName}" with ${count.toLocaleString()} installations`);
+            }
+            
+            // Show some statistics
+            if (results.length > 5) {
+                const top5Total = results.slice(0, 5).reduce((sum, row) => sum + parseInt(row.count), 0);
+                const percentage = ((top5Total / total) * 100).toFixed(1);
+                insights.push(`Top 5 software titles account for ${percentage}% of all installations`);
+            }
         }
         
         if (q.includes('avg') || q.includes('average')) {
             const avgValue = Object.values(results[0])[0];
             if (!isNaN(avgValue)) {
                 insights.push(`Average value: ${parseFloat(avgValue).toLocaleString()}`);
-            }
-        }
-        
-        if (q.includes('group by') && results.length > 1) {
-            insights.push(`Found ${results.length} distinct groups in your data`);
-            
-            // Find the group with highest value
-            const valueCol = Object.keys(results[0])[1];
-            if (valueCol && !isNaN(results[0][valueCol])) {
-                const maxGroup = results.reduce((max, row) => 
-                    (parseFloat(row[valueCol]) || 0) > (parseFloat(max[valueCol]) || 0) ? row : max
-                );
-                insights.push(`Highest value: ${Object.values(maxGroup)[0]} (${parseFloat(maxGroup[valueCol]).toLocaleString()})`);
             }
         }
         
@@ -710,7 +723,10 @@ class DataExplorer {
     }
 
     determineChartType(results, columns) {
-        if (results.length < 2 || results.length > 50) return null;
+        console.log('Determining chart type for', results.length, 'results');
+        
+        // Allow more results for charts, but limit the display
+        if (results.length < 2) return null;
         
         // Check if we have a good candidate for charting
         const hasStringColumn = columns.some(col => 
@@ -720,12 +736,16 @@ class DataExplorer {
             results.some(row => !isNaN(row[col]) && row[col] !== null)
         );
         
+        console.log('Has string column:', hasStringColumn, 'Has numeric column:', hasNumericColumn);
+        
         if (hasStringColumn && hasNumericColumn && columns.length === 2) {
-            return {
+            const config = {
                 type: 'bar',
                 labelColumn: columns[0],
                 valueColumn: columns[1]
             };
+            console.log('Chart config:', config);
+            return config;
         }
         
         return null;
@@ -734,15 +754,30 @@ class DataExplorer {
     createChart(results, config) {
         const ctx = document.getElementById('resultsChart').getContext('2d');
         
-        const labels = results.map(row => row[config.labelColumn]);
-        const data = results.map(row => parseFloat(row[config.valueColumn]) || 0);
+        // Limit chart to top 20 results for readability
+        const chartResults = results.slice(0, 20);
+        console.log('Creating chart with', chartResults.length, 'items');
+        
+        const labels = chartResults.map(row => {
+            let label = row[config.labelColumn];
+            // Truncate long labels
+            if (label && label.length > 30) {
+                label = label.substring(0, 27) + '...';
+            }
+            return label || 'Unknown';
+        });
+        
+        const data = chartResults.map(row => parseFloat(row[config.valueColumn]) || 0);
+        
+        console.log('Chart labels:', labels);
+        console.log('Chart data:', data);
         
         new Chart(ctx, {
             type: config.type,
             data: {
                 labels: labels,
                 datasets: [{
-                    label: config.valueColumn.replace(/_/g, ' '),
+                    label: 'Count',
                     data: data,
                     backgroundColor: 'rgba(102, 126, 234, 0.6)',
                     borderColor: 'rgba(102, 126, 234, 1)',
@@ -758,12 +793,22 @@ class DataExplorer {
                     },
                     title: {
                         display: true,
-                        text: `${config.valueColumn.replace(/_/g, ' ')} by ${config.labelColumn.replace(/_/g, ' ')}`
+                        text: `Top ${chartResults.length} Software Installations`
                     }
                 },
                 scales: {
                     y: {
-                        beginAtZero: true
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Installations'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
                     }
                 }
             }
