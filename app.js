@@ -37,36 +37,8 @@ class DataExplorer {
     }
 
     async initializeAI() {
-        if (this.modelLoaded) return;
-        
-        try {
-            this.showStatus('Loading AI model (first time only, ~10MB)...', 'success');
-            
-            // Use an even smaller, more reliable model
-            this.pipeline = await window.Transformers.pipeline(
-                'text2text-generation',
-                'Xenova/flan-t5-base',
-                {
-                    quantized: true,
-                    progress_callback: (progress) => {
-                        console.log('Model loading progress:', progress);
-                        if (progress.status === 'downloading') {
-                            this.showStatus(`Downloading model: ${Math.round(progress.progress || 0)}%`, 'success');
-                        }
-                    }
-                }
-            );
-            
-            this.modelLoaded = true;
-            this.showStatus('AI model loaded successfully!', 'success');
-            console.log('AI model loaded successfully');
-            setTimeout(() => this.hideStatus(), 3000);
-        } catch (error) {
-            console.error('Failed to load AI model:', error);
-            this.showStatus('AI model failed to load. Using smart pattern matching instead - this works great too!', 'error');
-            // Don't treat this as a failure - pattern matching works great
-            setTimeout(() => this.hideStatus(), 5000);
-        }
+        // AI model removed - using smart pattern matching instead
+        return;
     }
 
     setupEventListeners() {
@@ -123,14 +95,17 @@ class DataExplorer {
         try {
             const data = await this.parseFile(file);
             await this.createTableFromData(data, file.name);
-            
-            this.showStatus(`Successfully loaded ${data.length} rows with columns: ${this.currentData.schema.join(', ')}`, 'success');
+
+            this.showStatus(`✅ Successfully loaded ${data.length.toLocaleString()} rows with ${this.currentData.schema.length} columns`, 'success');
             this.chatSection.style.display = 'block';
             this.chatInput.focus();
             
+            // Hide status after a moment
+            setTimeout(() => this.hideStatus(), 3000);
+
             // Initialize AI model in background
             this.initializeAI();
-            
+
         } catch (error) {
             this.showStatus(`Upload failed: ${error.message}`, 'error');
         } finally {
@@ -140,7 +115,7 @@ class DataExplorer {
 
     async parseFile(file) {
         const ext = file.name.split('.').pop().toLowerCase();
-        
+
         if (ext === 'csv') {
             return this.parseCSV(file);
         } else if (ext === 'xlsx' || ext === 'xls') {
@@ -194,10 +169,10 @@ class DataExplorer {
 
         // Create new database
         this.db = new this.SQL.Database();
-        
+
         const tableName = 'user_data';
         const columns = Object.keys(data[0]);
-        
+
         this.currentData = {
             tableName,
             schema: columns,
@@ -211,7 +186,7 @@ class DataExplorer {
         // Insert data
         const placeholders = columns.map(() => '?').join(', ');
         const stmt = this.db.prepare(`INSERT INTO ${tableName} VALUES (${placeholders})`);
-        
+
         for (const row of data) {
             const values = columns.map(col => row[col] || null);
             stmt.run(values);
@@ -230,30 +205,20 @@ class DataExplorer {
         this.showLoading(true);
 
         try {
-            console.log('Question:', question);
-            console.log('Available columns:', this.currentData.schema);
-            
             const sqlQuery = await this.generateSQLFromQuestion(question);
-            console.log('Generated SQL:', sqlQuery);
-            
             const results = this.executeQuery(sqlQuery);
-            console.log('Query results:', results);
-            
-            // Add AI response to chat with more context
-            const detectedColumn = this.findColumnInQuestion(question);
-            console.log('Detected column:', detectedColumn);
-            
-            let responseMsg = `I found ${results.length} results. Here's what I executed: \`${sqlQuery}\``;
+
+            let responseMsg = `Found ${results.length.toLocaleString()} results`;
             
             if (question.toLowerCase().includes('chart') || question.toLowerCase().includes('bar')) {
-                responseMsg += ` (Available columns: ${this.currentData.schema.join(', ')} | Detected column: "${detectedColumn}")`;
+                responseMsg = `Created visualization with ${results.length.toLocaleString()} data points`;
             }
-            
+
             this.addMessage(responseMsg, 'ai');
-            
+
             // Show results table
             this.displayResults(results, sqlQuery);
-            
+
         } catch (error) {
             console.error('Error in sendMessage:', error);
             this.addMessage(`Sorry, I encountered an error: ${error.message}`, 'ai');
@@ -265,7 +230,6 @@ class DataExplorer {
     async generateSQLFromQuestion(question) {
         // For now, let's focus on making pattern matching work perfectly
         // The AI model can be added back later once pattern matching is solid
-        console.log('Using pattern matching for question:', question);
         return this.generateSQLWithPatterns(question);
     }
 
@@ -276,15 +240,15 @@ class DataExplorer {
             max_new_tokens: 50,
             temperature: 0.1
         });
-        
+
         let sql = result[0].generated_text.trim();
-        
+
         // Clean up the response
         sql = sql.replace(/^(SELECT|select)/, 'SELECT');
         if (!sql.toLowerCase().includes('from')) {
             sql += ` FROM user_data`;
         }
-        
+
         return sql;
     }
 
@@ -292,28 +256,23 @@ class DataExplorer {
         const q = question.toLowerCase();
         const tableName = 'user_data';
         const columns = this.currentData.schema;
-        
-        console.log('Pattern matching for:', q);
-        console.log('Available columns:', columns);
-        
+
+
+
         // Enhanced pattern matching for Evidence-style queries
-        
+
         // Chart-specific patterns (highest priority)
         if (q.includes('chart') || q.includes('graph') || q.includes('plot')) {
-            console.log('Detected chart request');
             const column = this.findColumnInQuestion(q);
-            console.log('Found column for chart:', column);
             if (column) {
-                const sql = `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
-                console.log('Generated chart SQL:', sql);
-                return sql;
+                return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
             }
         }
-        
+
         // Show/display/view patterns with chart context
         if (q.includes('show') || q.includes('display') || q.includes('view')) {
             console.log('Detected show/display/view pattern');
-            
+
             // Check for chart/graph requests first
             if (q.includes('chart') || q.includes('graph') || q.includes('bar') || q.includes('plot')) {
                 console.log('Detected chart request in show pattern');
@@ -325,7 +284,7 @@ class DataExplorer {
                     return sql;
                 }
             }
-            
+
             // Check for "by" patterns (grouping)
             if (q.includes(' by ')) {
                 console.log('Detected "by" pattern in show');
@@ -337,7 +296,7 @@ class DataExplorer {
                     return sql;
                 }
             }
-            
+
             if (q.includes('first') || q.includes('top')) {
                 const num = this.extractNumber(q) || 10;
                 return `SELECT * FROM ${tableName} LIMIT ${num}`;
@@ -346,7 +305,7 @@ class DataExplorer {
                 return `SELECT * FROM ${tableName}`;
             }
         }
-        
+
         // Count and group patterns
         if (q.includes('count')) {
             if (q.includes('group') || q.includes('by')) {
@@ -357,7 +316,7 @@ class DataExplorer {
             }
             return `SELECT COUNT(*) as total_rows FROM ${tableName}`;
         }
-        
+
         // Average patterns
         if (q.includes('average') || q.includes('avg') || q.includes('mean')) {
             const column = this.findColumnInQuestion(q);
@@ -371,7 +330,7 @@ class DataExplorer {
                 return `SELECT AVG("${column}") as average_${column} FROM ${tableName}`;
             }
         }
-        
+
         // Sum patterns
         if (q.includes('sum') || q.includes('total')) {
             const column = this.findColumnInQuestion(q);
@@ -385,7 +344,7 @@ class DataExplorer {
                 return `SELECT SUM("${column}") as total_${column} FROM ${tableName}`;
             }
         }
-        
+
         // Min/Max patterns
         if (q.includes('maximum') || q.includes('max') || q.includes('highest')) {
             const column = this.findColumnInQuestion(q);
@@ -393,14 +352,14 @@ class DataExplorer {
                 return `SELECT * FROM ${tableName} ORDER BY "${column}" DESC LIMIT 1`;
             }
         }
-        
+
         if (q.includes('minimum') || q.includes('min') || q.includes('lowest')) {
             const column = this.findColumnInQuestion(q);
             if (column) {
                 return `SELECT * FROM ${tableName} ORDER BY "${column}" ASC LIMIT 1`;
             }
         }
-        
+
         // Unique/distinct patterns
         if (q.includes('unique') || q.includes('distinct')) {
             const column = this.findColumnInQuestion(q);
@@ -408,7 +367,7 @@ class DataExplorer {
                 return `SELECT DISTINCT "${column}" FROM ${tableName} ORDER BY "${column}"`;
             }
         }
-        
+
         // Comparison patterns
         if (q.includes('greater than') || q.includes('>') || q.includes('more than')) {
             const column = this.findColumnInQuestion(q);
@@ -417,7 +376,7 @@ class DataExplorer {
                 return `SELECT * FROM ${tableName} WHERE "${column}" > ${value} ORDER BY "${column}" DESC`;
             }
         }
-        
+
         if (q.includes('less than') || q.includes('<') || q.includes('below')) {
             const column = this.findColumnInQuestion(q);
             const value = this.extractNumber(q);
@@ -425,7 +384,7 @@ class DataExplorer {
                 return `SELECT * FROM ${tableName} WHERE "${column}" < ${value} ORDER BY "${column}" ASC`;
             }
         }
-        
+
         // Sort patterns
         if (q.includes('sort') || q.includes('order')) {
             const column = this.findColumnInQuestion(q);
@@ -434,7 +393,7 @@ class DataExplorer {
                 return `SELECT * FROM ${tableName} ORDER BY "${column}" ${desc}`;
             }
         }
-        
+
         // Search patterns
         if (q.includes('find') || q.includes('search') || q.includes('where')) {
             const column = this.findColumnInQuestion(q);
@@ -445,7 +404,7 @@ class DataExplorer {
                 }
             }
         }
-        
+
         // Catch-all for "by [column]" patterns that might have been missed
         if (q.includes(' by ')) {
             const column = this.findColumnInQuestion(q);
@@ -453,7 +412,7 @@ class DataExplorer {
                 return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
             }
         }
-        
+
         // Default: show sample data
         return `SELECT * FROM ${tableName} LIMIT 20`;
     }
@@ -476,60 +435,58 @@ class DataExplorer {
     findColumnInQuestion(question) {
         const columns = this.currentData.schema;
         const q = question.toLowerCase();
-        
-        console.log('Finding column in question:', q);
-        console.log('Available columns:', columns);
-        
+
+
+
         // First, try exact column name matches
         for (const col of columns) {
             if (q.includes(col.toLowerCase())) {
-                console.log('Found exact match:', col);
                 return col;
             }
         }
-        
+
         // Then try partial matches and common synonyms
         for (const col of columns) {
             const colLower = col.toLowerCase();
-            
+
             // Check for common data type patterns
-            if ((q.includes('name') || q.includes('title')) && 
+            if ((q.includes('name') || q.includes('title')) &&
                 (colLower.includes('name') || colLower.includes('title') || colLower.includes('software'))) {
                 return col;
             }
-            
-            if ((q.includes('category') || q.includes('type')) && 
+
+            if ((q.includes('category') || q.includes('type')) &&
                 (colLower.includes('category') || colLower.includes('type') || colLower.includes('kind'))) {
                 return col;
             }
-            
-            if ((q.includes('install') || q.includes('software')) && 
+
+            if ((q.includes('install') || q.includes('software')) &&
                 (colLower.includes('install') || colLower.includes('software') || colLower.includes('app') || colLower.includes('program'))) {
                 return col;
             }
-            
+
             if (q.includes('status') && colLower.includes('status')) {
                 return col;
             }
-            
-            if ((q.includes('date') || q.includes('time')) && 
+
+            if ((q.includes('date') || q.includes('time')) &&
                 (colLower.includes('date') || colLower.includes('time') || colLower.includes('created'))) {
                 return col;
             }
         }
-        
+
         // If no specific match, return the first string-like column (most likely to be categorical)
         for (const col of columns) {
             // This is a heuristic - columns with "name", "title", etc. are likely categorical
             const colLower = col.toLowerCase();
-            if (colLower.includes('name') || colLower.includes('title') || 
-                colLower.includes('software') || colLower.includes('app') || 
+            if (colLower.includes('name') || colLower.includes('title') ||
+                colLower.includes('software') || colLower.includes('app') ||
                 colLower.includes('program') || colLower.includes('category') ||
                 colLower.includes('type') || colLower.includes('status')) {
                 return col;
             }
         }
-        
+
         return columns[0]; // Final fallback to first column
     }
 
@@ -542,12 +499,12 @@ class DataExplorer {
         try {
             const stmt = this.db.prepare(sql);
             const results = [];
-            
+
             while (stmt.step()) {
                 const row = stmt.getAsObject();
                 results.push(row);
             }
-            
+
             stmt.free();
             return results;
         } catch (error) {
@@ -558,13 +515,13 @@ class DataExplorer {
     addMessage(text, sender) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
-        
+
         if (sender === 'ai') {
             messageDiv.innerHTML = `<strong>AI Assistant:</strong> ${text}`;
         } else {
             messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
         }
-        
+
         this.chatMessages.appendChild(messageDiv);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
     }
@@ -579,7 +536,7 @@ class DataExplorer {
         const columns = Object.keys(results[0]);
         const insights = this.generateInsights(results, query);
         const chartConfig = this.determineChartType(results, columns);
-        
+
         let html = `
             <div style="margin-bottom: 20px;">
                 <strong>SQL Query:</strong> <code style="background: #f1f5f9; padding: 4px 8px; border-radius: 4px;">${query}</code>
@@ -658,7 +615,7 @@ class DataExplorer {
         if (chartConfig && document.getElementById('resultsChart')) {
             this.createChart(results, chartConfig);
         }
-        
+
         // Scroll to results
         this.resultsSection.scrollIntoView({ behavior: 'smooth' });
     }
@@ -666,13 +623,13 @@ class DataExplorer {
     generateInsights(results, query) {
         const insights = [];
         const q = query.toLowerCase();
-        
+
         if (results.length > 0 && results[0].count !== undefined) {
             // This is a grouped count query
             const total = results.reduce((sum, row) => sum + (parseInt(row.count) || 0), 0);
             insights.push(`Found ${results.length.toLocaleString()} unique software titles`);
             insights.push(`Total installations across all software: ${total.toLocaleString()}`);
-            
+
             // Find the most popular software
             if (results.length > 0) {
                 const topSoftware = results[0];
@@ -680,7 +637,7 @@ class DataExplorer {
                 const count = topSoftware.count;
                 insights.push(`Most installed software: "${softwareName}" with ${count.toLocaleString()} installations`);
             }
-            
+
             // Show some statistics
             if (results.length > 5) {
                 const top5Total = results.slice(0, 5).reduce((sum, row) => sum + parseInt(row.count), 0);
@@ -688,24 +645,24 @@ class DataExplorer {
                 insights.push(`Top 5 software titles account for ${percentage}% of all installations`);
             }
         }
-        
+
         if (q.includes('avg') || q.includes('average')) {
             const avgValue = Object.values(results[0])[0];
             if (!isNaN(avgValue)) {
                 insights.push(`Average value: ${parseFloat(avgValue).toLocaleString()}`);
             }
         }
-        
+
         if (results.length === 1 && Object.keys(results[0]).length === 1) {
             insights.push(`Single result: ${Object.values(results[0])[0]}`);
         }
-        
+
         return insights;
     }
 
     extractMetrics(results, columns) {
         const metrics = [];
-        
+
         // If single row with numeric values, show as metrics
         if (results.length === 1) {
             const row = results[0];
@@ -718,26 +675,26 @@ class DataExplorer {
                 }
             });
         }
-        
+
         return metrics;
     }
 
     determineChartType(results, columns) {
         console.log('Determining chart type for', results.length, 'results');
-        
+
         // Allow more results for charts, but limit the display
         if (results.length < 2) return null;
-        
+
         // Check if we have a good candidate for charting
-        const hasStringColumn = columns.some(col => 
+        const hasStringColumn = columns.some(col =>
             results.some(row => isNaN(row[col]) && row[col] !== null)
         );
-        const hasNumericColumn = columns.some(col => 
+        const hasNumericColumn = columns.some(col =>
             results.some(row => !isNaN(row[col]) && row[col] !== null)
         );
-        
+
         console.log('Has string column:', hasStringColumn, 'Has numeric column:', hasNumericColumn);
-        
+
         if (hasStringColumn && hasNumericColumn && columns.length === 2) {
             const config = {
                 type: 'bar',
@@ -747,17 +704,17 @@ class DataExplorer {
             console.log('Chart config:', config);
             return config;
         }
-        
+
         return null;
     }
 
     createChart(results, config) {
         const ctx = document.getElementById('resultsChart').getContext('2d');
-        
+
         // Limit chart to top 20 results for readability
         const chartResults = results.slice(0, 20);
         console.log('Creating chart with', chartResults.length, 'items');
-        
+
         const labels = chartResults.map(row => {
             let label = row[config.labelColumn];
             // Truncate long labels
@@ -766,12 +723,12 @@ class DataExplorer {
             }
             return label || 'Unknown';
         });
-        
+
         const data = chartResults.map(row => parseFloat(row[config.valueColumn]) || 0);
-        
+
         console.log('Chart labels:', labels);
         console.log('Chart data:', data);
-        
+
         new Chart(ctx, {
             type: config.type,
             data: {
