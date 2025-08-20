@@ -53,8 +53,14 @@ class DataExplorer {
         // Chat events
         this.sendBtn.addEventListener('click', this.sendMessage.bind(this));
         this.chatInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') this.sendMessage();
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
         });
+        
+        // Auto-resize textarea
+        this.chatInput.addEventListener('input', this.autoResizeTextarea.bind(this));
     }
 
     handleDragOver(e) {
@@ -102,8 +108,6 @@ class DataExplorer {
 
             // Show column info after chat section is visible
             setTimeout(() => {
-                console.log('About to show column info');
-                console.log('Current data:', this.currentData);
                 this.showColumnInfo();
                 this.hideStatus();
             }, 500);
@@ -515,22 +519,22 @@ class DataExplorer {
     }
 
     addMessage(text, sender) {
-        console.log('addMessage called with:', text, sender);
-        console.log('chatMessages element:', this.chatMessages);
-        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
-        if (sender === 'ai') {
-            messageDiv.innerHTML = `<strong>Data Explorer:</strong> ${text}`;
-        } else {
-            messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
-        }
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'message-label';
+        labelDiv.textContent = sender === 'ai' ? 'Data Explorer' : 'You';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.innerHTML = text;
+
+        messageDiv.appendChild(labelDiv);
+        messageDiv.appendChild(contentDiv);
 
         this.chatMessages.appendChild(messageDiv);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
-        
-        console.log('Message added to chat');
     }
 
     displayResults(results, query) {
@@ -564,7 +568,7 @@ class DataExplorer {
         const metrics = this.extractMetrics(results, columns);
         if (metrics.length > 0) {
             html += `
-                <div style="text-align: center; margin: 20px 0;">
+                <div class="metrics-grid">
                     ${metrics.map(metric => `
                         <div class="metric-card">
                             <div class="metric-value">${metric.value}</div>
@@ -587,29 +591,32 @@ class DataExplorer {
         // Add data table
         const displayLimit = results.length > 1000 ? 50 : 100;
         html += `
-            <div style="margin-top: 20px;">
-                <h4>📋 Data Table</h4>
-                <p style="color: #666; margin-bottom: 10px;">
+            <div style="margin-top: 24px;">
+                <h4 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 12px; color: var(--text-primary);">📋 Data Table</h4>
+                <p style="color: var(--text-secondary); margin-bottom: 16px; font-size: 0.875rem;">
                     Showing top ${Math.min(displayLimit, results.length)} of ${results.length.toLocaleString()} results
                 </p>
-                <table class="results-table">
-                    <thead>
-                        <tr>
-                            ${columns.map(col => `<th>${col.replace('Aggregated: ', '').replace('Installed Software: ', '')}</th>`).join('')}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${results.slice(0, displayLimit).map((row, index) => `
+                <div style="overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <table class="results-table">
+                        <thead>
                             <tr>
-                                <td style="background: #f8f9fa; font-weight: bold;">#${index + 1}</td>
-                                ${columns.slice(1).map(col => `<td>${this.formatCellValue(row[col])}</td>`).join('')}
+                                <th style="min-width: 60px;">#</th>
+                                ${columns.slice(1).map(col => `<th>${col.replace('Aggregated: ', '').replace('Installed Software: ', '')}</th>`).join('')}
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${results.slice(0, displayLimit).map((row, index) => `
+                                <tr>
+                                    <td style="background: var(--background); font-weight: 600; color: var(--primary);">${index + 1}</td>
+                                    ${columns.slice(1).map(col => `<td>${this.formatCellValue(row[col])}</td>`).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
                 ${results.length > displayLimit ? `
-                    <p style="text-align: center; color: #666; margin-top: 10px;">
-                        <em>Showing top ${displayLimit} results. Total: ${results.length.toLocaleString()} unique software titles.</em>
+                    <p style="text-align: center; color: var(--text-secondary); margin-top: 16px; font-size: 0.875rem;">
+                        <em>Showing top ${displayLimit} results. Total: ${results.length.toLocaleString()} items found.</em>
                     </p>
                 ` : ''}
             </div>
@@ -801,26 +808,22 @@ class DataExplorer {
         this.status.style.display = 'none';
     }
 
+    autoResizeTextarea() {
+        this.chatInput.style.height = 'auto';
+        this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 120) + 'px';
+    }
+
     showColumnInfo() {
-        console.log('showColumnInfo called');
-        console.log('this.currentData:', this.currentData);
-        
         if (!this.currentData || !this.currentData.schema) {
-            console.error('No data schema available');
             return;
         }
 
         const columns = this.currentData.schema;
-        console.log('Raw columns:', columns);
-        
         const cleanColumns = columns.map(col =>
             col.replace('Aggregated: ', '').replace('Installed Software: ', '')
         );
-        console.log('Clean columns:', cleanColumns);
 
-        const columnMessage = `📋 Available columns in your data: ${cleanColumns.map(col => `"${col}"`).join(', ')}`;
-        console.log('Column message:', columnMessage);
-        
+        const columnMessage = `📋 <strong>Available columns in your data:</strong><br>${cleanColumns.map(col => `<code style="background: var(--background); padding: 2px 6px; border-radius: 4px; font-size: 0.8em;">"${col}"</code>`).join(', ')}`;
         this.addMessage(columnMessage, 'ai');
 
         // Add some helpful examples based on the columns

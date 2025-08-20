@@ -9,6 +9,24 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-dark: #2563eb;
+            --secondary: #64748b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius: 12px;
+            --radius-sm: 8px;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,196 +34,386 @@
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--background);
+            color: var(--text-primary);
+            line-height: 1.6;
             min-height: 100vh;
-            padding: 20px;
+        }
+
+        /* Accessibility improvements */
+        *:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
         
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
+            padding: 20px;
         }
         
         .header {
-            background: #2d3748;
-            color: white;
-            padding: 30px;
             text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 20px;
         }
         
         .header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .header p {
-            opacity: 0.8;
-            font-size: 1.1rem;
+            font-size: 1.125rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
         }
         
         .main-content {
-            padding: 40px;
+            display: grid;
+            gap: 32px;
+            grid-template-columns: 1fr;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr 1fr;
+                align-items: start;
+            }
         }
         
         .upload-section {
-            text-align: center;
-            margin-bottom: 40px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .upload-area {
-            border: 3px dashed #cbd5e0;
-            border-radius: 12px;
-            padding: 60px 20px;
-            transition: all 0.3s ease;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 48px 24px;
+            text-align: center;
+            transition: all 0.2s ease;
             cursor: pointer;
+            position: relative;
+            background: #fafbfc;
         }
         
         .upload-area:hover {
-            border-color: #667eea;
-            background: #f7fafc;
+            border-color: var(--primary);
+            background: #f0f9ff;
+            transform: translateY(-2px);
         }
         
         .upload-area.dragover {
-            border-color: #667eea;
-            background: #ebf8ff;
+            border-color: var(--primary);
+            background: #dbeafe;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
         }
         
         .upload-icon {
-            font-size: 4rem;
-            color: #a0aec0;
-            margin-bottom: 20px;
+            font-size: 3rem;
+            color: var(--primary);
+            margin-bottom: 16px;
+            display: block;
         }
         
         .upload-text {
-            font-size: 1.2rem;
-            color: #4a5568;
-            margin-bottom: 10px;
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 8px;
         }
         
         .upload-subtext {
-            color: #718096;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
         }
         
         .file-input {
-            display: none;
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
         }
         
         .btn {
-            background: #667eea;
+            background: var(--primary);
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 1rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 500;
             cursor: pointer;
-            transition: background 0.3s ease;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            min-height: 44px; /* Accessibility: minimum touch target */
         }
         
         .btn:hover {
-            background: #5a67d8;
+            background: var(--primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
         }
         
         .btn:disabled {
-            background: #a0aec0;
+            background: var(--secondary);
             cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--background);
+            border-color: var(--primary);
         }
         
         .chat-section {
             display: none;
-            margin-top: 40px;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        @media (min-width: 1024px) {
+            .chat-section {
+                position: sticky;
+                top: 20px;
+                max-height: calc(100vh - 40px);
+            }
+        }
+        
+        .chat-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--background);
         }
         
         .chat-container {
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            height: 400px;
             display: flex;
             flex-direction: column;
+            height: 500px;
+        }
+
+        @media (min-width: 1024px) {
+            .chat-container {
+                height: 600px;
+            }
         }
         
         .chat-messages {
             flex: 1;
             padding: 20px;
             overflow-y: auto;
-            background: #f7fafc;
+            background: var(--surface);
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--background);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
         }
         
         .message {
-            margin-bottom: 15px;
-            padding: 12px 16px;
-            border-radius: 8px;
-            max-width: 80%;
+            margin-bottom: 16px;
+            animation: fadeInUp 0.3s ease;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
         
-        .message.user {
-            background: #667eea;
+        .message-content {
+            padding: 12px 16px;
+            border-radius: var(--radius-sm);
+            max-width: 85%;
+            word-wrap: break-word;
+        }
+        
+        .message.user .message-content {
+            background: var(--primary);
             color: white;
             margin-left: auto;
+            border-bottom-right-radius: 4px;
         }
         
-        .message.ai {
-            background: white;
-            border: 1px solid #e2e8f0;
+        .message.ai .message-content {
+            background: var(--background);
+            border: 1px solid var(--border);
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+            font-weight: 500;
+        }
+
+        .message.user .message-label {
+            text-align: right;
         }
         
         .chat-input-container {
             padding: 20px;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .input-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            align-items: flex-end;
         }
         
         .chat-input {
             flex: 1;
-            padding: 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            font-size: 1rem;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            resize: none;
+            min-height: 44px;
+            max-height: 120px;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        .chat-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-secondary);
         }
         
         .results-section {
-            margin-top: 30px;
+            grid-column: 1 / -1;
             display: none;
+            background: var(--surface);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        .results-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border);
+            background: var(--background);
+        }
+
+        .results-content {
+            padding: 24px;
         }
         
         .results-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            border-radius: 8px;
+            background: var(--surface);
+            border-radius: var(--radius-sm);
             overflow: hidden;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow);
+            margin-top: 20px;
         }
         
         .results-table th,
         .results-table td {
-            padding: 12px;
+            padding: 12px 16px;
             text-align: left;
-            border-bottom: 1px solid #e2e8f0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.875rem;
         }
         
         .results-table th {
-            background: #f7fafc;
+            background: var(--background);
             font-weight: 600;
-            color: #2d3748;
+            color: var(--text-primary);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
         
         .results-table tr:hover {
-            background: #f7fafc;
+            background: var(--background);
+        }
+
+        .results-table tr:last-child td {
+            border-bottom: none;
         }
         
         .chart-container {
-            margin: 20px 0;
-            padding: 20px;
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 24px 0;
+            padding: 24px;
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
         }
         
         .chart-canvas {
@@ -213,60 +421,84 @@
         }
         
         .insights-panel {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            border-radius: var(--radius-sm);
+            padding: 24px;
+            margin: 24px 0;
+        }
+
+        .insights-panel h4 {
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            font-size: 1.125rem;
         }
         
         .insight-item {
-            margin: 10px 0;
-            padding: 10px;
-            background: white;
-            border-radius: 6px;
-            border-left: 4px solid #667eea;
+            margin: 12px 0;
+            padding: 16px;
+            background: var(--surface);
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin: 24px 0;
         }
         
         .metric-card {
-            display: inline-block;
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 24px;
             text-align: center;
-            min-width: 150px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
         }
         
         .metric-value {
-            font-size: 2rem;
-            font-weight: bold;
-            color: #2d3748;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1;
         }
         
         .metric-label {
-            color: #718096;
-            font-size: 0.9rem;
-            margin-top: 5px;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-top: 8px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
         
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
-            color: #718096;
+            padding: 24px;
+            color: var(--text-secondary);
         }
         
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-right: 10px;
+            margin-right: 12px;
         }
         
         @keyframes spin {
@@ -275,78 +507,179 @@
         }
         
         .status {
-            padding: 15px;
-            border-radius: 8px;
+            padding: 16px 20px;
+            border-radius: var(--radius-sm);
             margin: 20px 0;
             display: none;
+            font-weight: 500;
+            font-size: 0.875rem;
+            border: 1px solid;
         }
         
         .status.success {
-            background: #f0fff4;
-            border: 1px solid #9ae6b4;
-            color: #22543d;
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
         }
         
         .status.error {
-            background: #fed7d7;
-            border: 1px solid #feb2b2;
-            color: #742a2a;
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #dc2626;
+        }
+
+        .status.warning {
+            background: #fffbeb;
+            border-color: #fed7aa;
+            color: #d97706;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header {
+                padding: 24px 16px;
+                margin-bottom: 24px;
+            }
+
+            .upload-section,
+            .chat-section {
+                padding: 20px;
+            }
+
+            .main-content {
+                gap: 20px;
+            }
+
+            .chat-container {
+                height: 400px;
+            }
+
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: #0f172a;
+                --surface: #1e293b;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+                --border: #334155;
+            }
+        }
+
+        /* Reduced motion support */
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            :root {
+                --border: #000000;
+                --text-secondary: var(--text-primary);
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">
+        <header class="header">
             <h1>📊 Smart Data Explorer</h1>
             <p>Upload your data and explore it with simple questions - fast, private, and powerful!</p>
+        </header>
+        
+        <div class="status" id="status" role="alert" aria-live="polite"></div>
+        <div class="loading" id="loading" role="status" aria-live="polite">
+            <div class="spinner"></div>
+            Processing your request...
         </div>
         
-        <div class="main-content">
-            <div class="upload-section">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-icon">📊</div>
+        <main class="main-content">
+            <section class="upload-section">
+                <h2 class="section-title">
+                    <span>📁</span>
+                    Upload Your Data
+                </h2>
+                <div class="upload-area" id="uploadArea" role="button" tabindex="0" 
+                     aria-label="Upload data file" 
+                     onkeydown="if(event.key==='Enter'||event.key===' '){this.click()}">
+                    <div class="upload-icon" aria-hidden="true">📊</div>
                     <div class="upload-text">Drop your data file here or click to browse</div>
                     <div class="upload-subtext">Supports CSV, Excel (.xlsx, .xls) - Everything stays on your device!</div>
-                    <input type="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls">
+                    <input type="file" id="fileInput" class="file-input" accept=".csv,.xlsx,.xls" 
+                           aria-label="Choose data file">
                 </div>
-                <button class="btn" id="uploadBtn" style="margin-top: 20px; display: none;">Upload File</button>
-            </div>
+                <button class="btn" id="uploadBtn" style="margin-top: 20px; display: none;">
+                    <span>📤</span>
+                    Upload File
+                </button>
+            </section>
             
-            <div class="status" id="status"></div>
-            <div class="loading" id="loading">
-                <div class="spinner"></div>
-                Processing your request...
-            </div>
-            
-            <div class="chat-section" id="chatSection">
-                <h3>Ask questions about your data</h3>
+            <section class="chat-section" id="chatSection" aria-label="Data exploration chat">
+                <div class="chat-header">
+                    <h2 class="section-title">
+                        <span>💬</span>
+                        Ask Questions About Your Data
+                    </h2>
+                </div>
                 <div class="chat-container">
-                    <div class="chat-messages" id="chatMessages">
+                    <div class="chat-messages" id="chatMessages" role="log" aria-live="polite" aria-label="Chat messages">
                         <div class="message ai">
-                            <strong>Data Explorer:</strong> Upload your data and ask questions in plain English! Try:
-                            <ul style="margin-top: 10px; padding-left: 20px;">
-                                <li>"Show me a bar chart by category"</li>
-                                <li>"What are the top 10 items?"</li>
-                                <li>"Count items by type"</li>
-                                <li>"Find the highest values"</li>
-                            </ul>
-                            <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                                <em>✨ Automatic charts and insights • Everything runs in your browser • Your data stays private</em>
-                            </p>
+                            <div class="message-label">Data Explorer</div>
+                            <div class="message-content">
+                                Hi! Upload your data file and I'll help you explore it. Try questions like:
+                                <ul style="margin-top: 12px; padding-left: 20px; line-height: 1.6;">
+                                    <li>"Show me a bar chart by category"</li>
+                                    <li>"What are the top 10 items?"</li>
+                                    <li>"Count items by type"</li>
+                                    <li>"Find the highest values"</li>
+                                </ul>
+                                <p style="margin-top: 12px; font-size: 0.875rem; color: var(--text-secondary);">
+                                    <em>✨ Automatic charts and insights • Everything runs in your browser • Your data stays private</em>
+                                </p>
+                            </div>
                         </div>
                     </div>
                     <div class="chat-input-container">
-                        <input type="text" id="chatInput" class="chat-input" placeholder="Ask a question about your data...">
-                        <button class="btn" id="sendBtn">Send</button>
+                        <div class="input-group">
+                            <textarea id="chatInput" class="chat-input" 
+                                    placeholder="Ask a question about your data..." 
+                                    rows="1"
+                                    aria-label="Enter your question about the data"></textarea>
+                            <button class="btn" id="sendBtn" aria-label="Send message">
+                                <span>🚀</span>
+                                Send
+                            </button>
+                        </div>
                     </div>
                 </div>
+            </section>
+        </main>
+        
+        <section class="results-section" id="resultsSection" aria-label="Query results">
+            <div class="results-header">
+                <h2 class="section-title">
+                    <span>📈</span>
+                    Results
+                </h2>
             </div>
-            
-            <div class="results-section" id="resultsSection">
-                <h3>Query Results</h3>
+            <div class="results-content">
                 <div id="resultsContainer"></div>
             </div>
-        </div>
+        </section>
     </div>
 
     <script src="app.js"></script>
