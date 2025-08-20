@@ -58,7 +58,7 @@ class DataExplorer {
                 this.sendMessage();
             }
         });
-        
+
         // Auto-resize textarea
         this.chatInput.addEventListener('input', this.autoResizeTextarea.bind(this));
     }
