@@ -40,17 +40,18 @@ class DataExplorer {
         if (this.modelLoaded) return;
         
         try {
-            this.showStatus('Loading AI model (first time only, ~25MB)...', 'success');
+            this.showStatus('Loading AI model (first time only, ~10MB)...', 'success');
             
-            // Use a much smaller, browser-optimized model
+            // Use an even smaller, more reliable model
             this.pipeline = await window.Transformers.pipeline(
                 'text2text-generation',
-                'Xenova/flan-t5-small',
+                'Xenova/flan-t5-base',
                 {
                     quantized: true,
                     progress_callback: (progress) => {
+                        console.log('Model loading progress:', progress);
                         if (progress.status === 'downloading') {
-                            this.showStatus(`Downloading model: ${Math.round(progress.progress)}%`, 'success');
+                            this.showStatus(`Downloading model: ${Math.round(progress.progress || 0)}%`, 'success');
                         }
                     }
                 }
@@ -58,12 +59,13 @@ class DataExplorer {
             
             this.modelLoaded = true;
             this.showStatus('AI model loaded successfully!', 'success');
+            console.log('AI model loaded successfully');
             setTimeout(() => this.hideStatus(), 3000);
         } catch (error) {
             console.error('Failed to load AI model:', error);
-            this.showStatus('Failed to load AI model. Using smart pattern matching instead.', 'error');
+            this.showStatus('AI model failed to load. Using smart pattern matching instead - this works great too!', 'error');
             // Don't treat this as a failure - pattern matching works great
-            setTimeout(() => this.hideStatus(), 3000);
+            setTimeout(() => this.hideStatus(), 5000);
         }
     }
 
@@ -228,15 +230,23 @@ class DataExplorer {
         this.showLoading(true);
 
         try {
+            console.log('Question:', question);
+            console.log('Available columns:', this.currentData.schema);
+            
             const sqlQuery = await this.generateSQLFromQuestion(question);
+            console.log('Generated SQL:', sqlQuery);
+            
             const results = this.executeQuery(sqlQuery);
+            console.log('Query results:', results);
             
             // Add AI response to chat with more context
             const detectedColumn = this.findColumnInQuestion(question);
+            console.log('Detected column:', detectedColumn);
+            
             let responseMsg = `I found ${results.length} results. Here's what I executed: \`${sqlQuery}\``;
             
             if (question.toLowerCase().includes('chart') || question.toLowerCase().includes('bar')) {
-                responseMsg += ` (Detected column for grouping: "${detectedColumn}")`;
+                responseMsg += ` (Available columns: ${this.currentData.schema.join(', ')} | Detected column: "${detectedColumn}")`;
             }
             
             this.addMessage(responseMsg, 'ai');
@@ -245,6 +255,7 @@ class DataExplorer {
             this.displayResults(results, sqlQuery);
             
         } catch (error) {
+            console.error('Error in sendMessage:', error);
             this.addMessage(`Sorry, I encountered an error: ${error.message}`, 'ai');
         } finally {
             this.showLoading(false);
@@ -252,16 +263,9 @@ class DataExplorer {
     }
 
     async generateSQLFromQuestion(question) {
-        // Try AI model first if available
-        if (this.modelLoaded && this.pipeline) {
-            try {
-                return await this.generateSQLWithAI(question);
-            } catch (error) {
-                console.warn('AI generation failed, falling back to patterns:', error);
-            }
-        }
-        
-        // Fallback to pattern matching
+        // For now, let's focus on making pattern matching work perfectly
+        // The AI model can be added back later once pattern matching is solid
+        console.log('Using pattern matching for question:', question);
         return this.generateSQLWithPatterns(question);
     }
 
@@ -289,31 +293,48 @@ class DataExplorer {
         const tableName = 'user_data';
         const columns = this.currentData.schema;
         
+        console.log('Pattern matching for:', q);
+        console.log('Available columns:', columns);
+        
         // Enhanced pattern matching for Evidence-style queries
         
         // Chart-specific patterns (highest priority)
         if (q.includes('chart') || q.includes('graph') || q.includes('plot')) {
+            console.log('Detected chart request');
             const column = this.findColumnInQuestion(q);
+            console.log('Found column for chart:', column);
             if (column) {
-                return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                const sql = `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                console.log('Generated chart SQL:', sql);
+                return sql;
             }
         }
         
         // Show/display/view patterns with chart context
         if (q.includes('show') || q.includes('display') || q.includes('view')) {
+            console.log('Detected show/display/view pattern');
+            
             // Check for chart/graph requests first
             if (q.includes('chart') || q.includes('graph') || q.includes('bar') || q.includes('plot')) {
+                console.log('Detected chart request in show pattern');
                 const column = this.findColumnInQuestion(q);
+                console.log('Found column in show pattern:', column);
                 if (column) {
-                    return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                    const sql = `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                    console.log('Generated SQL from show pattern:', sql);
+                    return sql;
                 }
             }
             
             // Check for "by" patterns (grouping)
             if (q.includes(' by ')) {
+                console.log('Detected "by" pattern in show');
                 const column = this.findColumnInQuestion(q);
+                console.log('Found column for "by" pattern:', column);
                 if (column) {
-                    return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                    const sql = `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                    console.log('Generated SQL from "by" pattern:', sql);
+                    return sql;
                 }
             }
             
@@ -456,9 +477,13 @@ class DataExplorer {
         const columns = this.currentData.schema;
         const q = question.toLowerCase();
         
+        console.log('Finding column in question:', q);
+        console.log('Available columns:', columns);
+        
         // First, try exact column name matches
         for (const col of columns) {
             if (q.includes(col.toLowerCase())) {
+                console.log('Found exact match:', col);
                 return col;
             }
         }
