@@ -231,8 +231,15 @@ class DataExplorer {
             const sqlQuery = await this.generateSQLFromQuestion(question);
             const results = this.executeQuery(sqlQuery);
             
-            // Add AI response to chat
-            this.addMessage(`I found ${results.length} results. Here's what I executed: \`${sqlQuery}\``, 'ai');
+            // Add AI response to chat with more context
+            const detectedColumn = this.findColumnInQuestion(question);
+            let responseMsg = `I found ${results.length} results. Here's what I executed: \`${sqlQuery}\``;
+            
+            if (question.toLowerCase().includes('chart') || question.toLowerCase().includes('bar')) {
+                responseMsg += ` (Detected column for grouping: "${detectedColumn}")`;
+            }
+            
+            this.addMessage(responseMsg, 'ai');
             
             // Show results table
             this.displayResults(results, sqlQuery);
@@ -284,8 +291,32 @@ class DataExplorer {
         
         // Enhanced pattern matching for Evidence-style queries
         
-        // Show/display/view patterns
+        // Chart-specific patterns (highest priority)
+        if (q.includes('chart') || q.includes('graph') || q.includes('plot')) {
+            const column = this.findColumnInQuestion(q);
+            if (column) {
+                return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+            }
+        }
+        
+        // Show/display/view patterns with chart context
         if (q.includes('show') || q.includes('display') || q.includes('view')) {
+            // Check for chart/graph requests first
+            if (q.includes('chart') || q.includes('graph') || q.includes('bar') || q.includes('plot')) {
+                const column = this.findColumnInQuestion(q);
+                if (column) {
+                    return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                }
+            }
+            
+            // Check for "by" patterns (grouping)
+            if (q.includes(' by ')) {
+                const column = this.findColumnInQuestion(q);
+                if (column) {
+                    return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+                }
+            }
+            
             if (q.includes('first') || q.includes('top')) {
                 const num = this.extractNumber(q) || 10;
                 return `SELECT * FROM ${tableName} LIMIT ${num}`;
@@ -394,6 +425,14 @@ class DataExplorer {
             }
         }
         
+        // Catch-all for "by [column]" patterns that might have been missed
+        if (q.includes(' by ')) {
+            const column = this.findColumnInQuestion(q);
+            if (column) {
+                return `SELECT "${column}", COUNT(*) as count FROM ${tableName} GROUP BY "${column}" ORDER BY count DESC`;
+            }
+        }
+        
         // Default: show sample data
         return `SELECT * FROM ${tableName} LIMIT 20`;
     }
@@ -415,12 +454,58 @@ class DataExplorer {
 
     findColumnInQuestion(question) {
         const columns = this.currentData.schema;
+        const q = question.toLowerCase();
+        
+        // First, try exact column name matches
         for (const col of columns) {
-            if (question.toLowerCase().includes(col.toLowerCase())) {
+            if (q.includes(col.toLowerCase())) {
                 return col;
             }
         }
-        return columns[0]; // Default to first column
+        
+        // Then try partial matches and common synonyms
+        for (const col of columns) {
+            const colLower = col.toLowerCase();
+            
+            // Check for common data type patterns
+            if ((q.includes('name') || q.includes('title')) && 
+                (colLower.includes('name') || colLower.includes('title') || colLower.includes('software'))) {
+                return col;
+            }
+            
+            if ((q.includes('category') || q.includes('type')) && 
+                (colLower.includes('category') || colLower.includes('type') || colLower.includes('kind'))) {
+                return col;
+            }
+            
+            if ((q.includes('install') || q.includes('software')) && 
+                (colLower.includes('install') || colLower.includes('software') || colLower.includes('app') || colLower.includes('program'))) {
+                return col;
+            }
+            
+            if (q.includes('status') && colLower.includes('status')) {
+                return col;
+            }
+            
+            if ((q.includes('date') || q.includes('time')) && 
+                (colLower.includes('date') || colLower.includes('time') || colLower.includes('created'))) {
+                return col;
+            }
+        }
+        
+        // If no specific match, return the first string-like column (most likely to be categorical)
+        for (const col of columns) {
+            // This is a heuristic - columns with "name", "title", etc. are likely categorical
+            const colLower = col.toLowerCase();
+            if (colLower.includes('name') || colLower.includes('title') || 
+                colLower.includes('software') || colLower.includes('app') || 
+                colLower.includes('program') || colLower.includes('category') ||
+                colLower.includes('type') || colLower.includes('status')) {
+                return col;
+            }
+        }
+        
+        return columns[0]; // Final fallback to first column
     }
 
     extractNumber(text) {
