@@ -8,6 +8,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
             margin: 0;
@@ -200,6 +201,57 @@
             background: #f7fafc;
         }
         
+        .chart-container {
+            margin: 20px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .chart-canvas {
+            max-height: 400px;
+        }
+        
+        .insights-panel {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .insight-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .metric-card {
+            display: inline-block;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px;
+            text-align: center;
+            min-width: 150px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+        
+        .metric-label {
+            color: #718096;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+        
         .loading {
             display: none;
             text-align: center;
@@ -272,15 +324,16 @@
                 <div class="chat-container">
                     <div class="chat-messages" id="chatMessages">
                         <div class="message ai">
-                            <strong>AI Assistant:</strong> Hi! Upload your data file and I'll help you explore it. I can answer questions like:
+                            <strong>AI Assistant:</strong> Hi! Upload your data file and I'll help you explore it with Evidence-style visualizations. Try questions like:
                             <ul style="margin-top: 10px; padding-left: 20px;">
                                 <li>"Show me the first 10 rows"</li>
-                                <li>"What's the average of [column name]?"</li>
-                                <li>"Group by [column] and count items"</li>
-                                <li>"Find records where [column] > [value]"</li>
+                                <li>"What's the average sales by region?"</li>
+                                <li>"Count customers by category"</li>
+                                <li>"Find the highest revenue products"</li>
+                                <li>"Show unique values in status column"</li>
                             </ul>
                             <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
-                                <em>Note: The AI model will download on first use (~50MB). Everything runs in your browser - no data leaves your device!</em>
+                                <em>✨ I'll automatically create charts, insights, and formatted tables. Everything runs in your browser - your data stays private!</em>
                             </p>
                         </div>
                     </div>
