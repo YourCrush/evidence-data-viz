@@ -99,9 +99,11 @@ class DataExplorer {
             this.showStatus(`✅ Successfully loaded ${data.length.toLocaleString()} rows with ${this.currentData.schema.length} columns`, 'success');
             this.chatSection.style.display = 'block';
             this.chatInput.focus();
-            
+
             // Show column info after chat section is visible
             setTimeout(() => {
+                console.log('About to show column info');
+                console.log('Current data:', this.currentData);
                 this.showColumnInfo();
                 this.hideStatus();
             }, 500);
@@ -513,17 +515,22 @@ class DataExplorer {
     }
 
     addMessage(text, sender) {
+        console.log('addMessage called with:', text, sender);
+        console.log('chatMessages element:', this.chatMessages);
+        
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${sender}`;
 
         if (sender === 'ai') {
-            messageDiv.innerHTML = `<strong>AI Assistant:</strong> ${text}`;
+            messageDiv.innerHTML = `<strong>Data Explorer:</strong> ${text}`;
         } else {
             messageDiv.innerHTML = `<strong>You:</strong> ${text}`;
         }
 
         this.chatMessages.appendChild(messageDiv);
         this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        
+        console.log('Message added to chat');
     }
 
     displayResults(results, query) {
@@ -795,17 +802,25 @@ class DataExplorer {
     }
 
     showColumnInfo() {
+        console.log('showColumnInfo called');
+        console.log('this.currentData:', this.currentData);
+        
         if (!this.currentData || !this.currentData.schema) {
             console.error('No data schema available');
             return;
         }
-        
+
         const columns = this.currentData.schema;
+        console.log('Raw columns:', columns);
+        
         const cleanColumns = columns.map(col =>
             col.replace('Aggregated: ', '').replace('Installed Software: ', '')
         );
+        console.log('Clean columns:', cleanColumns);
 
         const columnMessage = `📋 Available columns in your data: ${cleanColumns.map(col => `"${col}"`).join(', ')}`;
+        console.log('Column message:', columnMessage);
+        
         this.addMessage(columnMessage, 'ai');
 
         // Add some helpful examples based on the columns
