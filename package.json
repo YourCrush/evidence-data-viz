@@ -1,7 +1,7 @@
 {
   "name": "evidence-ai-explorer",
   "version": "1.0.0",
-  "description": "AI-powered data exploration - GitHub Pages compatible",
+  "description": "Smart data exploration with natural language queries - GitHub Pages compatible",
   "scripts": {
     "dev": "python -m http.server 8000",
     "build": "echo 'No build step needed - static files ready for GitHub Pages'",

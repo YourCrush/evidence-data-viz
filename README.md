@@ -1,13 +1,13 @@
-# AI Data Explorer
+# Smart Data Explorer
 
-A client-side web application that allows users to upload datasets and explore them using natural language queries powered by browser-based AI. Perfect for GitHub Pages hosting!
+A client-side web application that allows users to upload datasets and explore them using natural language queries with intelligent pattern matching. Perfect for GitHub Pages hosting!
 
 ## 🌟 Features
 
 - **100% Client-Side**: Runs entirely in your browser - no server required!
 - **GitHub Pages Ready**: Deploy directly to GitHub Pages with zero configuration
 - **File Upload**: Support for CSV and Excel files (.xlsx, .xls)
-- **Browser-Based AI**: Uses Transformers.js with CodeLlama for query generation
+- **Smart Pattern Matching**: Understands natural language queries without external AI
 - **Natural Language Queries**: Ask questions in plain English about your data
 - **Privacy First**: Your data never leaves your device
 - **Real-time Results**: Instant SQL generation and data visualization
@@ -68,27 +68,27 @@ A client-side web application that allows users to upload datasets and explore t
 
 - **Frontend**: Vanilla JavaScript with modern CSS
 - **Database**: SQL.js (SQLite compiled to WebAssembly)
-- **AI Model**: CodeLlama via Transformers.js (WebAssembly)
+- **Query Engine**: Smart pattern matching with natural language understanding
 - **File Processing**: PapaParse for CSV, SheetJS for Excel
+- **Visualization**: Chart.js for automatic chart generation
 - **Hosting**: Static files only - works on any web server
 
 ## 🏗 Architecture
 
 1. User uploads file → Browser parses and stores in WebAssembly SQLite
-2. User asks question → Browser-based AI generates SQL query
-3. Query executes in browser → Results displayed in table format
+2. User asks question → Smart pattern matching generates appropriate SQL query
+3. Query executes in browser → Results displayed with charts, insights, and tables
 
 Everything happens client-side - no data transmission, maximum privacy!
 
 ## 🔧 Customization
 
-The application uses a hybrid approach for query generation:
+The application uses intelligent pattern matching for query generation:
 
-1. **AI-First**: Tries to use the CodeLlama model for intelligent query generation
-2. **Pattern Fallback**: Falls back to pattern matching for common queries if AI fails
-3. **Smart Patterns**: Recognizes keywords like "average", "count", "group by", etc.
-
-You can extend the pattern matching in the `generateSQLWithPatterns()` method.
+1. **Natural Language Processing**: Recognizes common data exploration patterns
+2. **Smart Column Detection**: Automatically finds relevant columns based on context
+3. **Query Patterns**: Understands keywords like "chart", "count", "average", "group by", etc.
+4. **Extensible**: Easy to add new patterns in the `generateSQLWithPatterns()` method
 
 ## 📱 Browser Compatibility
 
@@ -99,15 +99,15 @@ You can extend the pattern matching in the `generateSQLWithPatterns()` method.
 
 ## 🚨 Limitations
 
-- **Model Size**: First load downloads ~50MB AI model (cached afterward)
-- **Memory**: Large datasets (>100MB) may cause performance issues
-- **AI Accuracy**: Query generation depends on model understanding
+- **Pattern Recognition**: Works best with common data exploration patterns
+- **Memory**: Large datasets (>100MB) may cause performance issues  
 - **File Size**: Browser memory limits apply to uploaded files
+- **Query Complexity**: Advanced SQL operations may require manual queries
 
 ## 🔒 Privacy & Security
 
 - **No Data Transmission**: Everything runs locally in your browser
-- **No Tracking**: No analytics, cookies, or external requests (except CDN libraries)
+- **No External Services**: No AI APIs, tracking, or data collection
 - **Temporary Storage**: Data is only stored in browser memory during session
 - **Open Source**: Full transparency - inspect the code yourself
 
@@ -134,7 +134,7 @@ MIT License - feel free to use this project for any purpose!
 
 ## 🙏 Acknowledgments
 
-- [Transformers.js](https://huggingface.co/docs/transformers.js) for browser-based AI
 - [SQL.js](https://sql.js.org/) for WebAssembly SQLite
+- [Chart.js](https://www.chartjs.org/) for beautiful data visualizations
 - [PapaParse](https://www.papaparse.com/) for CSV parsing
 - [SheetJS](https://sheetjs.com/) for Excel file support
